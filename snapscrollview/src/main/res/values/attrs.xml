@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SnapScrollView">
+        <attr name="snap" format="boolean"/>
+        <attr name="mScrollmode" format="integer"/>
+        <attr name="childTopMargin" format="dimension"/>
+        <attr name="childTLeftMargin" format="dimension"/>
+        <attr name="childRightMargin" format="dimension"/>
+        <attr name="childBottomMargin" format="dimension"/>
+    </declare-styleable>
+</resources>
