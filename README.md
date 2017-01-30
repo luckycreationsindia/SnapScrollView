@@ -5,16 +5,17 @@ The child or inner views can be directly added to the parent. To set the margins
 
  
 To use inside the app just add the following to your root build.gradle
-
+```
 allprojects {
 		repositories {
 			...
 			maven { url 'https://jitpack.io' }
 		}
 	}
-  
+  ```
   Then add the following to your dependency and compile
-  
+  ```
   dependencies {
 	        compile 'com.github.santhoshkumar2794:SnapScrollView:1.0.0'
 	}
+```
