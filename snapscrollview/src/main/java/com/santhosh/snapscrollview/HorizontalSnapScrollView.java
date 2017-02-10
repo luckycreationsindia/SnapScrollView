@@ -14,12 +14,12 @@ import android.view.animation.Interpolator;
 import android.widget.OverScroller;
 
 /**
- * Created by santhosh-3366 on 19/01/17.
+ * Created by santhosh-3366 on 18/01/17.
  */
 
-public class SnapScrollView extends ViewGroup {
+public class HorizontalSnapScrollView extends ViewGroup {
 
-    private android.widget.OverScroller mScroller;
+    private OverScroller mScroller;
     private VelocityTracker mVelocityTracker;
 
     private int mLastYPos;
@@ -30,19 +30,16 @@ public class SnapScrollView extends ViewGroup {
 
     private int mPageHeight;
     private int mPageWidth;
-
     private int mMaximumVelocity;
     private int mMinimumVelocity;
-
     private int mChildHeight;
     private int mChildWidth;
-
-    private int mCurrentPage = 0;
+    private int mCurrentPage;
     private int mOverscrollDistance;
     private int mOverFlingDistance;
     private int mTouchSlop;
     private int mActivePointerId;
-    private int mScrollMode = 1;
+    private int mScrollMode = 2;
 
     private boolean mIsBeingDragged, isDrag;
     private boolean snap;
@@ -57,27 +54,26 @@ public class SnapScrollView extends ViewGroup {
     private static final int INVALID_POINTER = -1;
     private static final int DEFAULT_DURATION = 800;
 
-    public SnapScrollView(Context context) {
+    public HorizontalSnapScrollView(Context context) {
         this(context, null);
     }
 
-    public SnapScrollView(Context context, AttributeSet attrs) {
+    public HorizontalSnapScrollView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public SnapScrollView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public HorizontalSnapScrollView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
 
         TypedArray a = context.obtainStyledAttributes(attrs, com.santhosh.snapscrollview.R.styleable.SnapScrollView, defStyleAttr, 0);
-        setScrollMode(a.getInteger(R.styleable.SnapScrollView_mScrollmode, 1));
-        setSnap(a.getBoolean(R.styleable.SnapScrollView_snap,true));
+        setScrollMode(a.getInteger(R.styleable.SnapScrollView_mScrollmode, 2));
+        setSnap(a.getBoolean(R.styleable.SnapScrollView_snap, true));
         setChildTopMargin((int) a.getDimension(R.styleable.SnapScrollView_childTopMargin, 0));
         setChildLeftMargin((int) a.getDimension(R.styleable.SnapScrollView_childTLeftMargin, 0));
         setChildBottomMargin((int) a.getDimension(R.styleable.SnapScrollView_childBottomMargin, 0));
         setChildRightMargin((int) a.getDimension(R.styleable.SnapScrollView_childRightMargin, 0));
     }
-
 
     private void init() {
         mScroller = new OverScroller(getContext(), new ViscousFluidInterpolator());
@@ -96,14 +92,11 @@ public class SnapScrollView extends ViewGroup {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        mPageWidth = mPageWidth != 0 ? mPageWidth : getMeasuredWidth();
-        mPageHeight = mPageHeight != 0 ? mPageHeight : getMeasuredHeight();
-        setMeasuredDimension(mPageWidth, getMeasuredHeight());
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
             child.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
         }
-        scrollTo(getScrollX(), getScrollY());
+
     }
 
 
@@ -112,39 +105,28 @@ public class SnapScrollView extends ViewGroup {
         int count = getChildCount();
         mMaximumHeight = 0;
         mMaximumWidth = 0;
+        childLeftMargin = 10;
         for (int i = 0; i < count; i++) {
             View child = getChildAt(i);
             child.measure(0, 0);
-            ViewGroup.LayoutParams params = child.getLayoutParams();
+            LayoutParams params = child.getLayoutParams();
             child.requestLayout();
             mChildHeight = mChildHeight > params.height ? mChildHeight : params.height + child.getPaddingTop() + child.getPaddingBottom() + childTopMargin + childBottomMargin;
             mChildWidth = mChildWidth > params.width ? mChildWidth : params.width + child.getPaddingLeft() + child.getPaddingRight() + childLeftMargin + childRightMargin;
-            if (mScrollMode == 1) {
-                child.layout(0, mMaximumHeight, params.width, mMaximumHeight + params.height);
-                mMaximumHeight += mChildHeight;
-                mMaximumWidth = getMeasuredWidth();
-                mPageWidth = mChildWidth;
-                mPageHeight = mChildHeight;
-            } else {
+            if (mScrollMode == 2) {
                 child.layout(mMaximumWidth, 0, mMaximumWidth + params.width, params.height);
                 mMaximumWidth += mChildWidth;
                 mMaximumHeight = getMeasuredHeight();
-                mPageHeight = mChildHeight;
-                mPageWidth = mChildWidth;
             }
         }
-        scrollTo(0, getChildAt(mCurrentPage).getBottom());
+        scrollTo(getScrollX(), 0);
     }
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        final int action = ev.getAction();
+        final int action = ev.getActionMasked();
         if ((action == MotionEvent.ACTION_MOVE) && (mIsBeingDragged)) {
             return true;
-        }
-
-        if (getScrollY() == 0 && !canScrollVertically(1) && mScrollMode == 1) {
-            return false;
         }
         switch (action) {
             case MotionEvent.ACTION_DOWN: {
@@ -162,7 +144,6 @@ public class SnapScrollView extends ViewGroup {
                 initVelocityTracker();
                 mVelocityTracker.addMovement(ev);
                 mIsBeingDragged = !mScroller.isFinished();
-
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
@@ -178,8 +159,7 @@ public class SnapScrollView extends ViewGroup {
                 final int xDiff = Math.abs(x - mLastYPos);
 
                 final int y = (int) ev.getY(pointerIndex);
-                final int yDiff = Math.abs(y - mLastYPos);
-                if ((yDiff > mTouchSlop && mScrollMode == 1)) {
+                if ((xDiff > mTouchSlop && mScrollMode == 2)) {
                     mIsBeingDragged = true;
                     mLastXPos = x;
                     mLastYPos = y;
@@ -192,11 +172,13 @@ public class SnapScrollView extends ViewGroup {
                 }
                 break;
             }
+            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
                 mIsBeingDragged = false;
                 mActivePointerId = INVALID_POINTER;
                 recycleVelocityTracker();
-                if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0, getScrollRange())) {
+                int diffX = (getMeasuredWidth() - getPaddingLeft() - getPaddingRight() - mChildWidth) / 2;
+                if (mScroller.springBack(getScrollX(), getScrollY(), -diffX, getHorizontalScrollRange(), 0, 0)) {
                     postInvalidateOnAnimation();
                 }
                 break;
@@ -236,124 +218,151 @@ public class SnapScrollView extends ViewGroup {
                 if (activePointerIndex == -1) {
                     break;
                 }
-                verticalMove(y);
+                horizontalMove(x);
                 break;
             case MotionEvent.ACTION_UP:
                 if (mIsBeingDragged) {
                     final VelocityTracker velocityTrack = mVelocityTracker;
                     velocityTrack.computeCurrentVelocity(1000, mMaximumVelocity);
-                    int velocityY = (int) velocityTrack.getYVelocity(mActivePointerId);
-                    if (snap) {
-                        computeVerticalScroll(velocityY);
-                    }else {
-                        flingVertically(-velocityY);
-                    }
+                        int velocityX = (int) velocityTrack.getXVelocity(mActivePointerId);
+                        computeHorizontalScroll(velocityX);
                 }
                 break;
+            case MotionEvent.ACTION_CANCEL:
+                if (mIsBeingDragged) {
+                    if (mScrollMode == 1) {
+                        if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0, getScrollRange())) {
+                            postInvalidateOnAnimation();
+                        }
+                    } else {
+                        int diffX = (getMeasuredWidth() - getPaddingLeft() - getPaddingRight() - mChildWidth) / 2;
+                        if (mScroller.springBack(getScrollX(), getScrollY(), -diffX, getHorizontalScrollRange(), 0, 0)) {
+                            postInvalidateOnAnimation();
+                        }
+                    }
+                    mActivePointerId = INVALID_POINTER;
+                    endDrag();
+                }
         }
         return true;
     }
 
-    private void verticalMove(int y) {
-        int diffY = mLastYPos - y;
-        isDrag = isDrag || Math.abs(diffY) > mTouchSlop;
-        if (!mIsBeingDragged) {
+    private void horizontalMove(int x) {
+        int diffX = mLastXPos - x;
+        isDrag = isDrag || Math.abs(diffX) > mTouchSlop;
+        if (!mIsBeingDragged && Math.abs(diffX) > mTouchSlop) {
             final ViewParent parent = getParent();
             if (parent != null) {
                 parent.requestDisallowInterceptTouchEvent(true);
             }
             mIsBeingDragged = true;
-            if (diffY > 0) {
-                diffY -= mTouchSlop;
+            if (diffX > 0) {
+                diffX -= mTouchSlop;
             } else {
-                diffY += mTouchSlop;
+                diffX += mTouchSlop;
             }
         }
         if (mIsBeingDragged) {
-            mLastYPos = y;
+            mLastXPos = x;
             if (isDrag) {
-                scrollBy(0, diffY);
+                scrollBy(diffX, 0);
             }
-            if (overScrollBy(0, diffY, 0, getScrollY(), 0, getScrollRange(), 0, mOverscrollDistance, true)) {
+            if (overScrollBy(diffX,0, getScrollX(), 0, getHorizontalScrollRange(), 0, mOverscrollDistance,0, true)) {
                 mVelocityTracker.clear();
             }
         }
     }
 
-    private void computeVerticalScroll(int velocityY) {
-        int height = getMeasuredHeight() - getPaddingBottom() - getPaddingTop();
-        int offsetY = getfinalOffsetY(getScrollX(), getScrollY(), 0, -velocityY, 0, 0, 0, Math.max(0, mMaximumHeight - height));
-        float childNum = (float) (offsetY) / mChildHeight;
+    private void computeHorizontalScroll(int velocityX) {
+        int width = getMeasuredWidth() - getPaddingLeft() - getPaddingRight();
+        int offsetX = getfinalOffsetX(getScrollX(), getScrollY(), -velocityX, 0, 0, Math.max(0, mMaximumWidth - width),0,0);
+        float childNum = (float) (offsetX) / mChildWidth;
         int childNo = Math.floor(childNum) > getChildCount() - 1 ? getChildCount() - 1 : (int) Math.floor(childNum);
         View child = getChildAt(childNo);
         if (child != null) {
-            int deltaY = child.getBottom();
+            int deltaX = child.getRight();
             if (childNo == getChildCount() - 1) {
-                deltaY = child.getBottom() - getMeasuredHeight() - getScrollY();
+                deltaX = child.getRight() - getMeasuredWidth() - getScrollX();
             }
-
-            mCurrentPage = childNo;
-            String type = "FLING";
-            if (Math.abs(velocityY) > mMinimumVelocity) {
-                if (velocityY >= 0) {
-                    //Scroll Upwards
-                    type = "SNAP";
-                    if (deltaY > getScrollY()) {
-                        while (deltaY > getScrollY()) {
-                            deltaY -= mChildHeight;
+            String type = "FLING";//No I18N
+            if (Math.abs(velocityX) > mMinimumVelocity) {
+                mCurrentPage = childNo+1;
+                if (velocityX >= 0) {
+                    //Scroll Leftwards
+                    type = "SNAP";//No I18N
+                    if (offsetX <= 0) {
+                        type = "LEFT";//No I18N
+                        mCurrentPage = 0;
+                    }else if (deltaX > getScrollX()) {
+                        while (deltaX > getScrollX()) {
+                            deltaX -= mChildWidth;
+                            mCurrentPage--;
                         }
-                    } else if (offsetY <= 0) {
-                        type = "TOP";
                     }
-                } else if (velocityY < 0) {
-                    //Scroll Downwards
-                    type = "SNAP";
-                    if (deltaY < getScrollY()) {
-                        deltaY += mChildHeight;
-                    } else if (getScrollY() > mMaximumHeight - height || deltaY > mMaximumHeight - height) {
-                        type = "BOTTOM";
+                } else if (velocityX < 0) {
+                    //Scroll Righwards
+                    type = "SNAP";//No I18N
+                    if (getScrollX() > mMaximumWidth - width || deltaX > mMaximumWidth - width) {
+                        type = "RIGHT";//No I18N
+                    } else if (deltaX < getScrollX()) {
+                        deltaX += mChildWidth;
                     }
                 }
             }
             switch (type) {
-                case "TOP":
-                    snapToTop();
+                case "LEFT"://No I18N
+                    snapToStart();
+                    mCurrentPage=0;
                     break;
-                case "BOTTOM":
-                    snapToBottom(offsetY);
+                case "RIGHT"://No I18N
+                    snapToEnd(offsetX);
+                    mCurrentPage=getChildCount()-1;
                     break;
-                case "SNAP":
-                    verticalSnap(deltaY);
+                case "SNAP"://No I18N
+                    horizontalSnap(deltaX);
                     break;
-                case "FLING":
-                    verticalFling(velocityY);
+                case "FLING"://No I18N
+                    horizontalFling(velocityX);
                     break;
             }
 
         }
     }
 
-    private void snapToTop() {
-        mScroller.startScroll(getScrollX(), getScrollY(), 0, -getScrollY(), DEFAULT_DURATION);
+    private void snapToStart(){
+        int diffX = (getWidth()-getPaddingLeft()-getPaddingRight()-mChildWidth)/2;
+        mScroller.startScroll(getScrollX(), getScrollY(), -(getScrollX()+diffX), 0, DEFAULT_DURATION);
         invalidate();
         endDrag();
     }
 
-    private void snapToBottom(int offsetY) {
-        mScroller.startScroll(getScrollX(), getScrollY(), 0, offsetY - getScrollY(), DEFAULT_DURATION);
+    private void snapToEnd(int offsetX){
+        mScroller.startScroll(getScrollX(), getScrollY(), offsetX-getScrollX(), 0, DEFAULT_DURATION);
         invalidate();
         endDrag();
     }
 
-    private void verticalSnap(int deltaY) {
-        mScroller.startScroll(getScrollX(), getScrollY(), 0, deltaY - getScrollY(), DEFAULT_DURATION);
+    private void horizontalSnap(int deltaX){
+        int diffX = (getWidth()-getPaddingLeft()-getPaddingRight()-mChildWidth)/2;
+        diffX = deltaX==0? 0 : diffX;
+        mScroller.startScroll(getScrollX(), getScrollY(), deltaX-getScrollX()-diffX, 0, DEFAULT_DURATION);
         invalidate();
         endDrag();
     }
 
-    private void verticalFling(int velocityY) {
-        flingVertically(-velocityY);
+    private void horizontalFling(int velocityX){
+        flingHorizontally(-velocityX);
     }
+
+    public void flingHorizontally(int velocityX) {
+        if (getChildCount() > 0) {
+            int width = getWidth() - getPaddingLeft() - getPaddingRight();
+            int diffX = (width-mChildWidth)/2;
+            mScroller.fling(getScrollX(), getScrollY(), velocityX, 0, -diffX, Math.max(0, mMaximumWidth - width), 0, 0, width / 2, 0);
+            postInvalidateOnAnimation();
+        }
+    }
+
 
     private void endDrag() {
         mIsBeingDragged = false;
@@ -380,6 +389,14 @@ public class SnapScrollView extends ViewGroup {
         } else {
             recycleVelocityTracker();
         }
+    }
+
+    private int getHorizontalScrollRange(){
+        int scrollRange = 0;
+        if (getChildCount() > 0) {
+            scrollRange = Math.max(0, mMaximumWidth - (getWidth() - getPaddingLeft() - getPaddingRight()));
+        }
+        return scrollRange;
     }
 
 
@@ -414,15 +431,7 @@ public class SnapScrollView extends ViewGroup {
         return scrollRange;
     }
 
-    private int getHorizontalScrollRange() {
-        int scrollRange = 0;
-        if (getChildCount() > 0) {
-            scrollRange = Math.max(0, mMaximumWidth - (getWidth() - getPaddingLeft() - getPaddingRight()));
-        }
-        return scrollRange;
-    }
-
-    public void flingVertically(int velocityY) {
+    public void fling(int velocityY) {
         if (getChildCount() > 0) {
             int height = getHeight() - getPaddingBottom() - getPaddingTop();
             mScroller.fling(getScrollX(), getScrollY(), 0, velocityY, 0, 0, 0, Math.max(0, mMaximumHeight - height), 0, height / 2);
@@ -430,7 +439,32 @@ public class SnapScrollView extends ViewGroup {
         }
     }
 
-    public int getfinalOffsetY(int startX, int startY, int velocityX, int velocityY, int minX, int maxX, int minY, int maxY) {
+    public void fling(int startX, int startY, int velocityX, int velocityY, int minX, int maxX, int minY, int maxY) {
+        // Continue a scroll or fling in progress
+        float velocity = (float) Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+        float coeffX = velocity == 0 ? 1.0f : velocityX / velocity;
+        float coeffY = velocity == 0 ? 1.0f : velocityY / velocity;
+
+        double totalDistance = getSplineFlingDistance(velocity);
+        int mDistance = (int) (totalDistance * Math.signum(velocity));
+
+        int mMinX = minX;
+        int mMaxX = maxX;
+        int mMinY = minY;
+        int mMaxY = maxY;
+
+        int mFinalX = startX + (int) Math.round(totalDistance * coeffX);
+        // Pin to mMinX <= mFinalX <= mMaxX
+        mFinalX = Math.min(mFinalX, mMaxX);
+        mFinalX = Math.max(mFinalX, mMinX);
+
+        int mFinalY = startY + (int) Math.round(totalDistance * coeffY);
+        // Pin to mMinY <= mFinalY <= mMaxY
+        mFinalY = Math.min(mFinalY, mMaxY);
+        mFinalY = Math.max(mFinalY, mMinY);
+    }
+
+    public int getfinalOffsetX(int startX, int startY, int velocityX, int velocityY, int minX, int maxX, int minY, int maxY) {
         if (!mScroller.isFinished()) {
             float oldVel = mScroller.getCurrVelocity();
             float dx = (float) (mScroller.getFinalX() - mScroller.getStartX());
@@ -448,15 +482,17 @@ public class SnapScrollView extends ViewGroup {
                 velocityY += oldVelocityY;
             }
         }
+        // Continue a scroll or fling in progress
         float velocity = (float) Math.sqrt(velocityX * velocityX + velocityY * velocityY);
-        float coeffY = velocity == 0 ? 1.0f : velocityY / velocity;
+        float coeffX = velocity == 0 ? 1.0f : velocityX / velocity;
 
         double totalDistance = getSplineFlingDistance(velocity);
-        int mFinalY = startY + (int) Math.round(totalDistance * coeffY);
-        // Pin to mMinY <= mFinalY <= mMaxY
-        mFinalY = Math.min(mFinalY, maxY);
-        mFinalY = Math.max(mFinalY, minY);
-        return mFinalY;
+
+        int mFinalX = startX + (int) Math.round(totalDistance * coeffX);
+        // Pin to mMinX <= mFinalX <= mMaxX
+        mFinalX = Math.min(mFinalX, maxX);
+        mFinalX = Math.max(mFinalX, minX);
+        return mFinalX;
     }
 
     private int getSplineFlingDuration(float velocity) {
@@ -549,14 +585,6 @@ public class SnapScrollView extends ViewGroup {
         invalidate();
     }
 
-    public boolean isSnap() {
-        return snap;
-    }
-
-    public void setSnap(boolean snap) {
-        this.snap = snap;
-    }
-
     public void setChildMargins(int left, int top, int right, int bottom) {
         childLeftMargin = left;
         childTopMargin = top;
@@ -571,7 +599,14 @@ public class SnapScrollView extends ViewGroup {
 
     public void setScrollMode(int mScrollMode) {
         this.mScrollMode = mScrollMode;
-        invalidate();
+    }
+
+    public boolean isSnap() {
+        return snap;
+    }
+
+    public void setSnap(boolean snap) {
+        this.snap = snap;
     }
 
     static class ViscousFluidInterpolator implements Interpolator {
