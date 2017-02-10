@@ -22,4 +22,4 @@ allprojects {
 	        compile 'com.github.santhoshkumar2794:SnapScrollView:x.x.x'
 	}
 ```
-Latest Release Version : 1.1.0
+Latest Release Version : 1.1.1
